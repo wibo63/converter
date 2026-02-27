@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imperial → Metrisch</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --panel: #161616;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 80px;
+  }
+  header { text-align: center; margin-bottom: 32px; }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 10vw, 100px);
+    letter-spacing: 4px;
+    line-height: 1;
+    color: var(--text);
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .voice-section {
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .voice-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    align-self: flex-start;
+  }
+  .mic-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: #1a1a1a;
+    color: var(--text);
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mic-btn:hover { border-color: var(--accent); background: #222; }
+  .mic-btn.listening {
+    border-color: var(--accent2);
+    background: #1a0d08;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.4); }
+    50%       { box-shadow: 0 0 0 14px rgba(255,107,53,0); }
+  }
+  .voice-status {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-align: center;
+    min-height: 18px;
+  }
+  .voice-status.heard { color: var(--accent); }
+  .voice-status.error { color: var(--accent2); }
+  .voice-result {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .voice-result.show { display: flex; }
+  .heard-text { font-size: 11px; color: var(--muted); }
+  .heard-text span { color: var(--text); }
+  .result-line {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .imp-val  { font-size: 26px; font-weight: 500; color: var(--text); }
+  .imp-unit { font-size: 14px; color: var(--accent2); }
+  .big-arrow{ font-size: 20px; color: var(--accent); }
+  .met-val  { font-size: 38px; font-weight: 500; color: var(--accent); }
+  .met-unit { font-size: 16px; color: var(--accent); opacity: 0.7; }
+  .hint {
+    font-size: 10px;
+    color: #3a3a3a;
+    text-align: center;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .tabs {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    width: 100%;
+    max-width: 560px;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 6px;
+    background: var(--panel);
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid var(--border);
+  }
+  .tab:last-child { border-right: none; }
+  .tab.active { background: var(--accent); color: #000; font-weight: bold; }
+  .tab:not(.active):hover { color: var(--text); background: #1e1e1e; }
+  .converter {
+    width: 100%;
+    max-width: 560px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .converter.active { display: flex; }
+  .row {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .row:focus-within { border-color: var(--accent); }
+  .field { padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .field input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    width: 100%;
+  }
+  .field input::placeholder { color: #333; }
+  .field .unit { font-size: 12px; color: var(--accent2); letter-spacing: 1px; }
+  .arrow {
+    padding: 0 12px;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: bold;
+    user-select: none;
+  }
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 0 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IMP <span>→</span> MET</h1>
+  <p class="subtitle">Imperial naar Metrisch Converter</p>
+</header>
+
+<div class="voice-section">
+  <div class="voice-label">🎙 Stem invoer — spreek in het Engels</div>
+  <button class="mic-btn" id="micBtn" onclick="toggleVoice()">🎤</button>
+  <div class="voice-status" id="voiceStatus">Druk op de microfoon en spreek</div>
+  <div class="voice-result" id="voiceResult">
+    <div class="heard-text">Gehoord: <span id="heardText"></span></div>
+    <div class="result-line">
+      <span class="imp-val" id="impVal"></span>
+      <span class="imp-unit" id="impUnit"></span>
+      <span class="big-arrow">→</span>
+      <span class="met-val" id="metVal"></span>
+      <span class="met-unit" id="metUnit"></span>
+    </div>
+  </div>
+  <div class="hint">
+    Voorbeelden: "10 miles" · "5 feet 11 inches" · "32 degrees fahrenheit"<br>
+    "3 pounds" · "2 gallons" · "60 mph" · "quarter inch" · "8 ounces"
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('length',event)">Lengte</button>
+  <button class="tab" onclick="showTab('weight',event)">Gewicht</button>
+  <button class="tab" onclick="showTab('volume',event)">Volume</button>
+  <button class="tab" onclick="showTab('temp',event)">Temp</button>
+  <button class="tab" onclick="showTab('speed',event)">Snelheid</button>
+</div>
+
+<div class="converter active" id="length">
+  <div class="section-title">Lengte</div>
+  <div class="row"><div class="field"><label>Inch</label><input type="number" id="inch" placeholder="0" oninput="convert('inch')"><span class="unit">in</span></div><div class="arrow">→</div><div class="field"><label>Centimeter</label><input type="number" id="cm" placeholder="0" oninput="convert('cm')"><span class="unit">cm</span></div></div>
+  <div class="row"><div class="field"><label>Foot</label><input type="number" id="ft" placeholder="0" oninput="convert('ft')"><span class="unit">ft</span></div><div class="arrow">→</div><div class="field"><label>Meter</label><input type="number" id="m" placeholder="0" oninput="convert('m')"><span class="unit">m</span></div></div>
+  <div class="row"><div class="field"><label>Yard</label><input type="number" id="yd" placeholder="0" oninput="convert('yd')"><span class="unit">yd</span></div><div class="arrow">→</div><div class="field"><label>Meter</label><input type="number" id="yd_m" placeholder="0" oninput="convert('yd_m')"><span class="unit">m</span></div></div>
+  <div class="row"><div class="field"><label>Mile</label><input type="number" id="mi" placeholder="0" oninput="convert('mi')"><span class="unit">mi</span></div><div class="arrow">→</div><div class="field"><label>Kilometer</label><input type="number" id="km" placeholder="0" oninput="convert('km')"><span class="unit">km</span></div></div>
+</div>
+
+<div class="converter" id="weight">
+  <div class="section-title">Gewicht</div>
+  <div class="row"><div class="field"><label>Ounce</label><input type="number" id="oz" placeholder="0" oninput="convert('oz')"><span class="unit">oz</span></div><div class="arrow">→</div><div class="field"><label>Gram</label><input type="number" id="g" placeholder="0" oninput="convert('g')"><span class="unit">g</span></div></div>
+  <div class="row"><div class="field"><label>Pound</label><input type="number" id="lb" placeholder="0" oninput="convert('lb')"><span class="unit">lb</span></div><div class="arrow">→</div><div class="field"><label>Kilogram</label><input type="number" id="kg" placeholder="0" oninput="convert('kg')"><span class="unit">kg</span></div></div>
+  <div class="row"><div class="field"><label>Stone</label><input type="number" id="st" placeholder="0" oninput="convert('st')"><span class="unit">st</span></div><div class="arrow">→</div><div class="field"><label>Kilogram</label><input type="number" id="st_kg" placeholder="0" oninput="convert('st_kg')"><span class="unit">kg</span></div></div>
+</div>
+
+<div class="converter" id="volume">
+  <div class="section-title">Volume</div>
+  <div class="row"><div class="field"><label>Fluid Ounce</label><input type="number" id="floz" placeholder="0" oninput="convert('floz')"><span class="unit">fl oz</span></div><div class="arrow">→</div><div class="field"><label>Milliliter</label><input type="number" id="ml" placeholder="0" oninput="convert('ml')"><span class="unit">ml</span></div></div>
+  <div class="row"><div class="field"><label>Pint (US)</label><input type="number" id="pt" placeholder="0" oninput="convert('pt')"><span class="unit">pt</span></div><div class="arrow">→</div><div class="field"><label>Liter</label><input type="number" id="pt_l" placeholder="0" oninput="convert('pt_l')"><span class="unit">L</span></div></div>
+  <div class="row"><div class="field"><label>Gallon (US)</label><input type="number" id="gal" placeholder="0" oninput="convert('gal')"><span class="unit">gal</span></div><div class="arrow">→</div><div class="field"><label>Liter</label><input type="number" id="gal_l" placeholder="0" oninput="convert('gal_l')"><span class="unit">L</span></div></div>
+</div>
+
+<div class="converter" id="temp">
+  <div class="section-title">Temperatuur</div>
+  <div class="row"><div class="field"><label>Fahrenheit</label><input type="number" id="f" placeholder="0" oninput="convert('f')"><span class="unit">°F</span></div><div class="arrow">→</div><div class="field"><label>Celsius</label><input type="number" id="c" placeholder="0" oninput="convert('c')"><span class="unit">°C</span></div></div>
+</div>
+
+<div class="converter" id="speed">
+  <div class="section-title">Snelheid</div>
+  <div class="row"><div class="field"><label>Miles/uur</label><input type="number" id="mph" placeholder="0" oninput="convert('mph')"><span class="unit">mph</span></div><div class="arrow">→</div><div class="field"><label>Kilometer/uur</label><input type="number" id="kmh" placeholder="0" oninput="convert('kmh')"><span class="unit">km/h</span></div></div>
+  <div class="row"><div class="field"><label>Knoop</label><input type="number" id="kn" placeholder="0" oninput="convert('kn')"><span class="unit">kn</span></div><div class="arrow">→</div><div class="field"><label>Kilometer/uur</label><input type="number" id="kn_kmh" placeholder="0" oninput="convert('kn_kmh')"><span class="unit">km/h</span></div></div>
+</div>
+
+<script>
+// ── Conversies ────────────────────────────────────────────────────
+function round(v, d=4) { return +parseFloat(v).toFixed(d); }
+function setVal(id, v) { const el=document.getElementById(id); if(el) el.value = v===''?'':round(v); }
+function getVal(id)    { return parseFloat(document.getElementById(id).value); }
+
+const pairs = {
+  inch:  ['cm',     v=>v*2.54,      v=>v/2.54],
+  cm:    ['inch',   v=>v/2.54,      v=>v*2.54],
+  ft:    ['m',      v=>v*0.3048,    v=>v/0.3048],
+  m:     ['ft',     v=>v/0.3048,    v=>v*0.3048],
+  yd:    ['yd_m',   v=>v*0.9144,    v=>v/0.9144],
+  yd_m:  ['yd',     v=>v/0.9144,    v=>v*0.9144],
+  mi:    ['km',     v=>v*1.60934,   v=>v/1.60934],
+  km:    ['mi',     v=>v/1.60934,   v=>v*1.60934],
+  oz:    ['g',      v=>v*28.3495,   v=>v/28.3495],
+  g:     ['oz',     v=>v/28.3495,   v=>v*28.3495],
+  lb:    ['kg',     v=>v*0.453592,  v=>v/0.453592],
+  kg:    ['lb',     v=>v/0.453592,  v=>v*0.453592],
+  st:    ['st_kg',  v=>v*6.35029,   v=>v/6.35029],
+  st_kg: ['st',     v=>v/6.35029,   v=>v*6.35029],
+  floz:  ['ml',     v=>v*29.5735,   v=>v/29.5735],
+  ml:    ['floz',   v=>v/29.5735,   v=>v*29.5735],
+  pt:    ['pt_l',   v=>v*0.473176,  v=>v/0.473176],
+  pt_l:  ['pt',     v=>v/0.473176,  v=>v*0.473176],
+  gal:   ['gal_l',  v=>v*3.78541,   v=>v/3.78541],
+  gal_l: ['gal',    v=>v/3.78541,   v=>v*3.78541],
+  f:     ['c',      v=>(v-32)*5/9,  v=>v*9/5+32],
+  c:     ['f',      v=>v*9/5+32,    v=>(v-32)*5/9],
+  mph:   ['kmh',    v=>v*1.60934,   v=>v/1.60934],
+  kmh:   ['mph',    v=>v/1.60934,   v=>v*1.60934],
+  kn:    ['kn_kmh', v=>v*1.852,     v=>v/1.852],
+  kn_kmh:['kn',    v=>v/1.852,     v=>v*1.852],
+};
+
+function convert(from) {
+  const v = getVal(from);
+  if (isNaN(v)) { setVal(pairs[from][0],''); return; }
+  setVal(pairs[from][0], pairs[from][1](v));
+}
+
+function showTab(id, e) {
+  document.querySelectorAll('.converter').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(e) e.target.classList.add('active');
+}
+
+// ── Voice parsing ─────────────────────────────────────────────────
+const unitMap = [
+  {words:['degrees fahrenheit','degrees f'], from:'f',    iL:'°F',    mL:'°C'},
+  {words:['fahrenheit'],                     from:'f',    iL:'°F',    mL:'°C'},
+  {words:['miles per hour'],                 from:'mph',  iL:'mph',   mL:'km/h'},
+  {words:['mph'],                            from:'mph',  iL:'mph',   mL:'km/h'},
+  {words:['fluid ounces','fluid ounce'],     from:'floz', iL:'fl oz', mL:'ml'},
+  {words:['fl oz','floz'],                   from:'floz', iL:'fl oz', mL:'ml'},
+  {words:['inches','inch'],                  from:'inch', iL:'inch',  mL:'cm'},
+  {words:['feet','foot'],                    from:'ft',   iL:'ft',    mL:'m'},
+  {words:['yards','yard'],                   from:'yd',   iL:'yd',    mL:'m'},
+  {words:['miles','mile'],                   from:'mi',   iL:'mi',    mL:'km'},
+  {words:['ounces','ounce'],                 from:'oz',   iL:'oz',    mL:'g'},
+  {words:['pounds','pound','lbs','lb'],      from:'lb',   iL:'lb',    mL:'kg'},
+  {words:['stone','stones'],                 from:'st',   iL:'st',    mL:'kg'},
+  {words:['pints','pint'],                   from:'pt',   iL:'pt',    mL:'L'},
+  {words:['gallons','gallon'],               from:'gal',  iL:'gal',   mL:'L'},
+  {words:['knots','knot'],                   from:'kn',   iL:'kn',    mL:'km/h'},
+];
+
+function spokenToNumber(s) {
+  s = s.trim().toLowerCase();
+  const direct = parseFloat(s);
+  if (!isNaN(direct)) return direct;
+  const fractions = {
+    'a quarter':0.25,'one quarter':0.25,'quarter':0.25,
+    'a half':0.5,'one half':0.5,'half':0.5,
+    'three quarters':0.75,'three quarter':0.75,
+    'a third':1/3,'one third':1/3,'third':1/3,'two thirds':2/3,
+  };
+  if (fractions[s] !== undefined) return fractions[s];
+  const mixed = s.match(/^(.+?)\s+and\s+(.+)$/);
+  if (mixed) {
+    const w = spokenToNumber(mixed[1]);
+    const f = spokenToNumber(mixed[2]);
+    if (!isNaN(w) && !isNaN(f)) return w + f;
+  }
+  const wordNums = {
+    'a':1,'an':1,'one':1,'two':2,'three':3,'four':4,'five':5,
+    'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,
+    'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,'sixteen':16,
+    'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,'thirty':30,
+    'forty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90,
+  };
+  if (wordNums[s] !== undefined) return wordNums[s];
+  const parts = s.split(/\s+/);
+  let total = 0;
+  for (const p of parts) {
+    if (wordNums[p] !== undefined) total += wordNums[p];
+    else if (!isNaN(parseFloat(p))) total += parseFloat(p);
+  }
+  return total || NaN;
+}
+
+const numWords = 'a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|quarter|half|third|quarters|halves|thirds|and';
+const numPattern = `((?:(?:${numWords})\\s+)*(?:a quarter|a half|three quarters|two thirds|one third|quarter|half|\\d+\\.?\\d*))`;
+
+function parseVoice(transcript) {
+  const t = transcript.toLowerCase().trim();
+  const fi = t.match(/(\d+\.?\d*)\s*(?:feet|foot|ft)\s*(?:and\s+)?(\d+\.?\d*)\s*(?:inches|inch)/);
+  if (fi) {
+    const totalIn = parseFloat(fi[1])*12 + parseFloat(fi[2]);
+    return { impVal:`${fi[1]}ft ${fi[2]}in`, impUnit:'', metVal:round(totalIn*2.54), metUnit:'cm', heard:transcript };
+  }
+  for (const entry of unitMap) {
+    for (const word of entry.words) {
+      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+      const re1 = new RegExp(`${numPattern}\\s*${escaped}`, 'i');
+      const re2 = new RegExp(`${escaped}\\s*${numPattern}`, 'i');
+      let m = t.match(re1), valStr = m ? m[1] : null;
+      if (!m) { m = t.match(re2); valStr = m ? m[1] : null; }
+      if (m && valStr) {
+        const val = spokenToNumber(valStr.trim());
+        if (!isNaN(val)) {
+          const dispVal = Number.isInteger(val) ? val : round(val,3);
+          return { impVal:dispVal, impUnit:entry.iL, metVal:round(pairs[entry.from][1](val)), metUnit:entry.mL, heard:transcript };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ── Web Speech API ────────────────────────────────────────────────
+let recognition = null;
+let isListening  = false;
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('voiceStatus');
+  el.textContent = msg;
+  el.className = 'voice-status' + (cls ? ` ${cls}` : '');
+}
+
+function showVoiceResult(result, heard) {
+  const box = document.getElementById('voiceResult');
+  document.getElementById('heardText').textContent = heard;
+  if (!result) {
+    document.getElementById('impVal').textContent  = '—';
+    document.getElementById('impUnit').textContent = '';
+    document.getElementById('metVal').textContent  = 'Niet herkend';
+    document.getElementById('metUnit').textContent = '';
+    setStatus('Kon de eenheid niet herkennen.', 'error');
+  } else {
+    document.getElementById('impVal').textContent  = result.impVal;
+    document.getElementById('impUnit').textContent = result.impUnit;
+    document.getElementById('metVal').textContent  = result.metVal;
+    document.getElementById('metUnit').textContent = result.metUnit;
+    setStatus('✓ Klaar!', 'heard');
+  }
+  box.classList.add('show');
+}
+
+function stopListening() {
+  isListening = false;
+  const btn = document.getElementById('micBtn');
+  btn.classList.remove('listening');
+  btn.textContent = '🎤';
+}
+
+function setupSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus('⚠ Spraakherkenning niet beschikbaar in deze browser.', 'error');
+    document.getElementById('micBtn').disabled = true;
+    return false;
+  }
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('micBtn').classList.add('listening');
+    document.getElementById('micBtn').textContent = '🔴';
+    setStatus('Luisteren…', '');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      e.results[i].isFinal ? (final += t) : (interim += t);
+    }
+    setStatus(`"${final || interim}"`, 'heard');
+    recognition._lastInterim = interim;
+    if (final) showVoiceResult(parseVoice(final), final);
+  };
+
+  recognition.onerror = (e) => {
+    const msgs = {'no-speech':'Geen spraak gedetecteerd.','not-allowed':'Microfoon toegang geweigerd.','network':'Netwerkfout.'};
+    setStatus(msgs[e.error] || `Fout: ${e.error}`, 'error');
+    stopListening();
+  };
+
+  recognition.onend = () => {
+    const box = document.getElementById('voiceResult');
+    if (!box.classList.contains('show') && recognition._lastInterim) {
+      showVoiceResult(parseVoice(recognition._lastInterim), recognition._lastInterim);
+    }
+    stopListening();
+  };
+
+  return true;
+}
+
+function toggleVoice() {
+  if (!recognition && !setupSpeech()) return;
+  if (isListening) {
+    recognition.stop();
+  } else {
+    try { recognition.start(); } catch(e) { setupSpeech(); recognition.start(); }
+  }
+}
+
+setupSpeech();
+</script>
+</body>
+</html>
